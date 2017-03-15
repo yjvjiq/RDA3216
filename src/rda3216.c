@@ -272,7 +272,7 @@ void RDA3216_Init(void){
 	delay_ms(10);
 	RDA3216_PWRON;
 
-	g_Chain_DevNO 					= CHAIN_DEV_NUM;
+	g_Chain_DevNO = CHAIN_DEV_NUM;
 	
 	config_cmd_t.cmd.sel_conv_mode	= 0x00;
 	config_cmd_t.cmd.rd_conv_mode	= 0x00;
