@@ -122,16 +122,16 @@ void ReadReg(U8 devAddr,U8 regAddr,U32 *data,U8 seek_all_flg)
 		RegNums = CHAIN_DEV_NUM;
 	}
 	
-	if( 0 == regAddr){	//read a serial registers' content of a device
 		Spi0_RdBytes(ReadDataBuff, RegNums);
 		for (U8 k = 0; k < RegNums; k++){
 			data[k] = (ReadDataBuff[k]>>6) & 0x1FFFF;
 		}
-	}
-	else{
-		Spi0_RdBytes(ReadDataBuff,RDCMD_LEN*g_Serial_RegNO);
-		data[0] = (ReadDataBuff[0]>>6) & 0x1FFFF;
-	}
+//	if( 0 == regAddr){	//read a serial registers' content of a device
+//	}
+//	else{
+//		Spi0_RdBytes(ReadDataBuff,RDCMD_LEN*g_Serial_RegNO);
+//		data[0] = (ReadDataBuff[0]>>6) & 0x1FFFF;
+//	}
 	
 	RDA3216_ConvsDone;
 }
@@ -185,7 +185,7 @@ void RDA_DeviceModReset(U8 mode){
 }
 
 void RDA_DeviceConfig(U8 chip_num,U8 mode)
-{
+{U32 cmd;
 	RDA3216_PWROFF;
 	delay_ms(10);
 	RDA3216_PWRON;
@@ -195,7 +195,7 @@ void RDA_DeviceConfig(U8 chip_num,U8 mode)
 	SPI0_BaudRate_Set(SPI_Baudrate_250K);
 	//write a single register -15h, chip_num devices in the chain of mode "mode"
 	SendWriteCommand(0, REGCONFIG_ADDR, cmd_reg15, 1);
-	
+
 	//set all devices in the chain as expected mode
 	U32 cmd_reg1C = CMD_DIFF_MODE;
 	//SendWriteCommand(0,REGSAMPLE_TIME_ADDR,cmd_reg1C,1);
@@ -253,9 +253,9 @@ void RDA_Test(void)
 				printf("%d\t",(int)(voltage_t[i/16][j]));
 				//printf("%d\t",(int)(transValue[i+j]));
 			}
-			for(U8 j=0;j<7;j++){
-				printf("%d\t",(int)(transValue[i+j]));
-			}
+//			for(U8 j=0;j<7;j++){
+//				printf("%d\t",(int)(transValue[i+j]));
+//			}
 		}
 	}
 }
@@ -264,7 +264,7 @@ void RDA_Test(void)
 void RDA3216_Init(void){
 	U8 devAddr = 0;
 	U8 regAddr = 0;
-	U32 cmd = 0;
+	static U32 cmd = 0;
 	U8 seekAllCmd = 0;
 	u_RDA_Config_Cmd config_cmd_t;
 	
@@ -278,7 +278,7 @@ void RDA3216_Init(void){
 	config_cmd_t.cmd.rd_conv_mode	= 0x00;
 	config_cmd_t.cmd.pd_form		= 0;
 	config_cmd_t.cmd.soft_reset		= 0;
-	config_cmd_t.cmd.chip_num		= CHAIN_DEV_NUM;
+	config_cmd_t.cmd.chip_num		= CHAIN_DEV_NUM - 1;
 	config_cmd_t.cmd.lock_dev_addr	= 1;
 	config_cmd_t.cmd.inc_dev_addr	= 1;
 	
@@ -291,23 +291,19 @@ void RDA3216_Init(void){
 	
 	cmd = CMD_DIFF_MODE;
 	SendWriteCommand(devAddr, REGSAMPLE_TIME_ADDR, cmd, 1); // sample time = 400ns, current detected in diff mode
+	
+//	ReadReg(0, REGCONFIG_ADDR, &cmd, 0);
 }
 
-void RDA_Read_Register(U8 devAddr, U8 regAddr, U8 *data, U8 seek_all_flg){
-//	U32 cmd = 0;
-	U8 seekAllCmd = 0;
-	SendReadCommand(devAddr, regAddr, seekAllCmd);
-	U32 cnt = 0;
+void RDA_Read_Register(U8 devAddr, U8 regAddr, U32 *data, U8 seek_all_flg){
 	U32 RdCmd_buf[MAX_SERIALREGNO] = {0}; // MAX_SERIALREGNO = 48
 
-	RDA3216_ConvsStart;
-	while( cnt !=0xFFFF) cnt++; // delay
 	SendReadCommand(devAddr,regAddr,seek_all_flg);
 	
-	if( 0 == regAddr)//read a serial registers' content of a device
+	if(0 == regAddr)//read a serial registers' content of a device
 	{
 		Spi0_RdBytes(&RdCmd_buf[0], g_Chain_DevNO*g_Serial_RegNO);
-		for (U8 k=0; k<g_Chain_DevNO*g_Serial_RegNO; k++)
+		for (U8 k=0; k < g_Chain_DevNO*g_Serial_RegNO; k++)
 		{
 			data[k] = (RdCmd_buf[k]>>6) & 0x1FFFF;
 		}
@@ -317,8 +313,18 @@ void RDA_Read_Register(U8 devAddr, U8 regAddr, U8 *data, U8 seek_all_flg){
 		Spi0_RdBytes(&RdCmd_buf[0],RDCMD_LEN*g_Serial_RegNO);
 		data[0] = (RdCmd_buf[0]>>6) & 0x1FFFF;
 	}
-	
+}
+
+
+void readVolt(U8 devAddr, U8 regAddr, U32 *data, U8 seek_all_flg){
+	U32 voltage_t[CHAIN_DEV_NUM][16] = {0};
+	RDA3216_ConvsStart;
+	delay_ms(100);
+	for(U8 i = 0; i < CHAIN_DEV_NUM; i++){
+		RDA_Read_Register(devAddr, regAddr, voltage_t[i], seek_all_flg);
+	}
 	RDA3216_ConvsDone;
 }
+
 
 

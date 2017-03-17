@@ -728,3 +728,7 @@ void MSCAN_TX_IRQHandler(void)
 }
 #endif
 
+void NMI_Handler(){
+	SIM_SOPT0 &= ~(uint32_t)SIM_SOPT0_NMIE_MASK; /* disable NMI pin */
+}
+
