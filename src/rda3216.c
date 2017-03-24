@@ -55,7 +55,6 @@ void SendWriteCommand(U8 devaddr, U8 regaddr, U32 cmd, U8 seekall_flg)
 				|((devaddr & (1<<3)) >> 3);
 	
 	WrtCmd_buf.WrtCmd.devaddr = devaddr_t & 0x0F;
-//	WrtCmd_buf.WrtCmd.devaddr = devaddr & 0x0F;
 	
 	WrtCmd_buf.WrtCmd.regaddr_H = (regaddr & 0x1e) >> 1;
 	WrtCmd_buf.WrtCmd.regaddr_L = regaddr & 0x01;
@@ -70,29 +69,6 @@ void SendWriteCommand(U8 devaddr, U8 regaddr, U32 cmd, U8 seekall_flg)
 	WrtCmd_buf.WrtCmd.rsvd = 0;
 
 	Spi0_WrBytes((unsigned char*)(&WrtCmd_buf.data[0]),WRTCMD_LEN);
-	
-	if (REGCONFIG_ADDR == regaddr)
-	{
-		U8 rd_conv_mode = (cmd>>12)&0x03;
-		switch (rd_conv_mode){
-		case 0:
-			g_Serial_RegNO = 16;
-			break;
-		case 1:
-			g_Serial_RegNO = 8;
-			break;
-		case 2:
-			g_Serial_RegNO = 7;
-			break;
-		case 3:
-			g_Serial_RegNO = 1;
-			break;
-		default:
-			g_Serial_RegNO = 1;
-			break;
-		}
-		
-	}
 }
 
 
@@ -112,7 +88,10 @@ void ReadReg(U8 devAddr,U8 regAddr,U32 *data,U8 seek_all_flg)
 	U8 RegNums = 0;
 	
 	RDA3216_ConvsStart;
-	delay_ms(100);
+	delay_ms(10);
+	RDA3216_ConvsDone;
+	delay_ms(10);
+	
 	SendReadCommand(devAddr,regAddr,seek_all_flg);
 	
 	if(seek_all_flg == 0){
@@ -185,7 +164,7 @@ void RDA_DeviceModReset(U8 mode){
 }
 
 void RDA_DeviceConfig(U8 chip_num,U8 mode)
-{U32 cmd;
+{
 	RDA3216_PWROFF;
 	delay_ms(10);
 	RDA3216_PWRON;
@@ -197,8 +176,8 @@ void RDA_DeviceConfig(U8 chip_num,U8 mode)
 	SendWriteCommand(0, REGCONFIG_ADDR, cmd_reg15, 1);
 
 	//set all devices in the chain as expected mode
-	U32 cmd_reg1C = CMD_DIFF_MODE;
-	//SendWriteCommand(0,REGSAMPLE_TIME_ADDR,cmd_reg1C,1);
+//	U32 cmd_reg1C = CMD_DIFF_MODE;
+//	SendWriteCommand(0,REGSAMPLE_TIME_ADDR,cmd_reg1C,1);
 
 	/*U8 selfchk_flg = Self_Check(cmd_reg15,cmd_reg1C);
 	if (0 == selfchk_flg)
@@ -260,13 +239,19 @@ void RDA_Test(void)
 	}
 }
 
-
+/******************************************************************************
+* @brief Function Name: 
+* @brief Description  : 
+* @param parameters   : 
+* @return Value       : 
+******************************************************************************/
 void RDA3216_Init(void){
 	U8 devAddr = 0;
 	U8 regAddr = 0;
-	static U32 cmd = 0;
+	U32 cmd = 0;
 	U8 seekAllCmd = 0;
-	u_RDA_Config_Cmd config_cmd_t;
+	u_RDA_Config_Cmd config_cmd_t = {0};
+	u_regAddr_1c regAddr_1c_cmd = {0};
 	
 	RDA3216_PWROFF;
 	delay_ms(10);
@@ -285,45 +270,103 @@ void RDA3216_Init(void){
 	devAddr		= 0;
 	seekAllCmd	= 1;
 	regAddr		= REGCONFIG_ADDR;
-	cmd			= (config_cmd_t.data[0] << 8) + config_cmd_t.data[1];
-	
+	cmd			= ((U16)config_cmd_t.data[0] << 8) + (U16)config_cmd_t.data[1];
 	SendWriteCommand(devAddr, regAddr, cmd, seekAllCmd);
 	
-	cmd = CMD_DIFF_MODE;
-	SendWriteCommand(devAddr, REGSAMPLE_TIME_ADDR, cmd, 1); // sample time = 400ns, current detected in diff mode
+	switch (config_cmd_t.cmd.rd_conv_mode){
+		case 0:
+			g_Serial_RegNO = 16;
+			break;
+		case 1:
+			g_Serial_RegNO = 8;
+			break;
+		case 2:
+			g_Serial_RegNO = 7;
+			break;
+		case 3:
+			g_Serial_RegNO = 1;
+			break;
+		default:
+			g_Serial_RegNO = 16;
+			break;
+	}
+		
 	
-//	ReadReg(0, REGCONFIG_ADDR, &cmd, 0);
+	/* ================write register 0x1c========================================== */
+	regAddr_1c_cmd.cmd.diff_mode_sel = 1;		// AUX0 and AUX1 in diff mode
+	regAddr_1c_cmd.cmd.sample_time_sel = 0x01;	// sample time = 800ns
+	cmd =	(U32)(regAddr_1c_cmd.data[0] << 16) + 
+			(U32)(regAddr_1c_cmd.data[0] << 8) + 
+			(U32)(regAddr_1c_cmd.data[0] << 0);
+	
+	devAddr		= 0;
+	seekAllCmd	= 1;
+	regAddr		= REGSAMPLE_TIME_ADDR;
+	SendWriteCommand(devAddr, regAddr, cmd, seekAllCmd); // sample time = 800ns, current detected in diff mode
+
 }
 
+/******************************************************************************
+* @brief Function Name: 
+* @brief Description  : 
+* @param parameters   : 
+* @return Value       : 
+******************************************************************************/
+void StartConvertCmd(void){
+	RDA3216_ConvsStart;
+	delay_ms(10);
+	RDA3216_ConvsDone;
+}
+
+/******************************************************************************
+* @brief Function Name: 
+* @brief Description  : 
+* @param parameters   : 
+* @return Value       : 
+******************************************************************************/
 void RDA_Read_Register(U8 devAddr, U8 regAddr, U32 *data, U8 seek_all_flg){
 	U32 RdCmd_buf[MAX_SERIALREGNO] = {0}; // MAX_SERIALREGNO = 48
-
+	
 	SendReadCommand(devAddr,regAddr,seek_all_flg);
 	
-	if(0 == regAddr)//read a serial registers' content of a device
-	{
-		Spi0_RdBytes(&RdCmd_buf[0], g_Chain_DevNO*g_Serial_RegNO);
-		for (U8 k=0; k < g_Chain_DevNO*g_Serial_RegNO; k++)
+	if(regAddr == REG_CONVERT_RESULT_ADDR){
+		Spi0_RdBytes(&RdCmd_buf[0], CHAIN_DEV_NUM*g_Serial_RegNO);
+		for (U8 k=0; k < CHAIN_DEV_NUM*g_Serial_RegNO; k++)
 		{
 			data[k] = (RdCmd_buf[k]>>6) & 0x1FFFF;
 		}
 	}
-	else
-	{
-		Spi0_RdBytes(&RdCmd_buf[0],RDCMD_LEN*g_Serial_RegNO);
-		data[0] = (RdCmd_buf[0]>>6) & 0x1FFFF;
+	else{
+		Spi0_RdBytes(&RdCmd_buf[0],CHAIN_DEV_NUM);
+		for (U8 k=0; k < CHAIN_DEV_NUM; k++)
+		{
+			data[k] = (RdCmd_buf[k]>>6) & 0x1FFFF;
+		}
 	}
 }
 
 
-void readVolt(U8 devAddr, U8 regAddr, U32 *data, U8 seek_all_flg){
+/******************************************************************************
+* @brief Function Name: 
+* @brief Description  : 
+* @param parameters   : 
+* @return Value       : 
+******************************************************************************/
+void ReadVolt(U16 *volt){
 	U32 voltage_t[CHAIN_DEV_NUM][16] = {0};
-	RDA3216_ConvsStart;
-	delay_ms(100);
+	U32 buff[MAX_SERIALREGNO] = {0};
+	U8 dev_addr, seek_all_flg;
+	
+	dev_addr = 0x00;
+	seek_all_flg = 1;
+	
+	StartConvertCmd();
+	RDA_Read_Register(dev_addr,REG_CONVERT_RESULT_ADDR,buff, seek_all_flg);
+	
 	for(U8 i = 0; i < CHAIN_DEV_NUM; i++){
-		RDA_Read_Register(devAddr, regAddr, voltage_t[i], seek_all_flg);
+//		g_FAE_pack_info.devices
 	}
-	RDA3216_ConvsDone;
+	
 }
 
 

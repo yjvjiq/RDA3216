@@ -51,7 +51,7 @@ int main(void)
     g_Serial_RegNO = 16;
 	printf("this is serial!\n");
 	for(;;){
-		printf("\n\nNO.%d", (int)read_voltage_cnt);
+//		printf("\n\nNO.%d", (int)read_voltage_cnt);
 //		ReadReg(0, 0x15, &cmd, 0);
 //		printf("\nreg_15= %x\n", (unsigned int)cmd);
 //		ReadReg(1, 0x16, &cmd, 0);

@@ -158,6 +158,7 @@ enum GPIOC_Register{
 #define LED1_TOGGLE     OUTPUT_TOGGLE(PTG,PTG1)
 #define LED2_TOGGLE     OUTPUT_TOGGLE(PTG,PTG2)
 
+/* RDA related */
 #define RDA3216_ConvsStart    OUTPUT_CLEAR(PTF,PTF4)
 #define RDA3216_ConvsDone    OUTPUT_SET(PTF,PTF4)
 #define RDA3216_PWRON  OUTPUT_SET(PTI,PTI4)
@@ -165,7 +166,7 @@ enum GPIOC_Register{
 #define RDA3216_ALERTON OUTPUT_SET(PTE,PTE5)
 #define RDA3216_ALERTOFF OUTPUT_CLEAR(PTE,PTE5)
 //#define SDO_LOW OUTPUT_CLEAR(PTB,PTB5)
-
+/* end of RDA related */
 
 
 #define LED0_OFF        OUTPUT_SET(PTG,PTG0);

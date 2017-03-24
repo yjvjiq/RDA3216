@@ -2,6 +2,7 @@
 #define _PUBLIC_H_
 
 #include "isl94212.h"
+#include "rda3216.h"
 
 #define RF_COMMUNICATION
 //#define CAN_COMMUNICATION
@@ -38,6 +39,7 @@ extern Fault_Info g_fault_info;
 
 /*AFE info data */
 extern ISL_Pack isl_pack;
+extern FAE_Pack g_FAE_pack_info;
 
 /* state blockdata */
 extern FlashState_Data_Struct g_stateblock_data;

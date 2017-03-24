@@ -32,6 +32,7 @@ void GPIO_Init()
     GPIOB_PDDR |= (1 << 16);
     GPIOB_PCOR = (1 << 16);
 
+	/* RDA related */
 	RDA3216_ConvsDone;
 	RDA3216_PWRON;
 	//RDA3216_ALERTOFF;

@@ -1,5 +1,6 @@
 #include "public.h"
 #include "config.h"
+#include "rda3216.h"
 
 /***************************************************************
                     Global Variables
@@ -17,6 +18,7 @@ Error_Counter g_error_counter;
 
 /* AFE info data */
 ISL_Pack isl_pack;
+FAE_Pack g_FAE_pack_info;
 
 /* state blockdata */
 FlashState_Data_Struct g_stateblock_data;
