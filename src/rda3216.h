@@ -14,6 +14,11 @@
 #define REGVOL_BASE 0x00
 #define REGAUX_BASE 0x07
 
+#define REGCONFIG_ADDR			0x15
+#define REGSERIAL_ADDR			0
+#define REGSAMPLE_TIME_ADDR		0x1c
+#define REG_CONVERT_RESULT_ADDR	0x00
+
 #define CMD_DIFF_MODE 0x8542 // diff mode
 #define CHAIN_DEV_NUM 3								/* AFE芯片数量 */
 #define CELL_NUMBER_IN_AFE              12          /* 每片AFE芯片上单体电池通道数  */
@@ -63,9 +68,6 @@ typedef struct {
 	U8 crc		:4;
 	U8 rsvd2	:1;
 }ReadCommand;
-
-
-
 
 typedef union {
 	ReadCommand RdCmd;

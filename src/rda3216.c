@@ -364,7 +364,9 @@ void ReadVolt(U16 *volt){
 	RDA_Read_Register(dev_addr,REG_CONVERT_RESULT_ADDR,buff, seek_all_flg);
 	
 	for(U8 i = 0; i < CHAIN_DEV_NUM; i++){
-//		g_FAE_pack_info.devices
+		for(U8 j=0;j<16;j++){
+			g_FAE_pack_info.devices[i].cellVoltages[j] = 0;
+		}
 	}
 	
 }
